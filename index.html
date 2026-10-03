@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>محول BBAN للبنوك السودانية</title>
+<meta name="description" content="محول BBAN للبنوك السودانية لتحويل أرقام الحسابات إلى صيغة BBAN بسهولة وسرعة.">
+<meta name="theme-color" content="#0f5c4d">
+<style>
+:root{
+  --bg:#eef2f0; --card:#ffffff; --ink:#14221e; --muted:#5b6b66; --line:#d5dfdb;
+  --brand:#0f5c4d; --brand-ink:#ffffff; --soft:#e4f0ec; --warn-bg:#fff4dc; --warn-ink:#6b4a00;
+  --field:#f8faf9; --shadow:0 10px 30px rgba(15,60,50,.10);
+}
+:root[data-theme="dark"]{
+  --bg:#0c1512; --card:#142320; --ink:#e8f1ee; --muted:#9bb0aa; --line:#25403a;
+  --brand:#3fbf9f; --brand-ink:#06201a; --soft:#1a332d; --warn-bg:#3a2e10; --warn-ink:#f2d58a;
+  --field:#0f1c19; --shadow:0 10px 30px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Segoe UI",Tahoma,"Noto Naskh Arabic","Noto Sans Arabic","Geeza Pro",Arial,sans-serif;
+  line-height:1.7; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px 14px;
+}
+.card{
+  width:100%; max-width:480px; background:var(--card); border:1px solid var(--line);
+  border-radius:18px; box-shadow:var(--shadow); padding:24px 20px 20px;
+}
+.top{display:flex; align-items:flex-start; justify-content:space-between; gap:12px}
+h1{font-size:1.45rem; margin:0 0 4px; line-height:1.4}
+.sub{margin:0; color:var(--muted); font-size:.95rem}
+.theme{
+  flex:none; width:42px; height:42px; border-radius:12px; border:1px solid var(--line);
+  background:var(--field); color:var(--ink); font-size:1.1rem; cursor:pointer;
+}
+label{display:block; font-weight:600; margin:22px 0 6px; font-size:.95rem}
+select,input{
+  width:100%; height:50px; padding:0 14px; font:inherit; font-size:1rem; color:var(--ink);
+  background:var(--field); border:1.5px solid var(--line); border-radius:12px;
+}
+input{letter-spacing:.04em}
+select:focus,input:focus,button:focus-visible{outline:3px solid var(--brand); outline-offset:1px; border-color:var(--brand)}
+.info{
+  margin-top:10px; padding:10px 14px; border-radius:12px; background:var(--soft);
+  font-size:.92rem; display:none;
+}
+.info.warn{background:var(--warn-bg); color:var(--warn-ink)}
+.actions{display:flex; gap:10px; margin-top:20px}
+.btn{
+  height:50px; border-radius:12px; font:inherit; font-weight:700; font-size:1rem; cursor:pointer;
+  border:1.5px solid var(--brand); transition:opacity .15s;
+}
+.btn.main{flex:1; background:var(--brand); color:var(--brand-ink)}
+.btn.alt{padding:0 22px; background:transparent; color:var(--brand)}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+.result{
+  margin-top:22px; padding:16px; border-radius:14px; border:1.5px dashed var(--brand);
+  background:var(--soft); display:none;
+}
+.result h2{margin:0 0 8px; font-size:.95rem; color:var(--muted); font-weight:600}
+.row{display:flex; align-items:center; gap:10px}
+.bban{
+  flex:1; min-width:0; direction:ltr; text-align:left; unicode-bidi:isolate;
+  font-family:ui-monospace,Consolas,Menlo,monospace; font-size:1.25rem; font-weight:700;
+  letter-spacing:.06em; word-break:break-all; background:var(--card); padding:12px 14px;
+  border-radius:10px; border:1px solid var(--line);
+}
+.copy{height:48px; padding:0 18px; border-radius:10px; border:0; background:var(--brand); color:var(--brand-ink); font:inherit; font-weight:700; cursor:pointer}
+.msg{margin-top:12px; color:#b3261e; font-size:.92rem; display:none}
+:root[data-theme="dark"] .msg{color:#ff9d94}
+.privacy{margin:20px 0 0; font-size:.8rem; color:var(--muted); text-align:center}
+.toast{
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--ink); color:var(--bg); padding:10px 20px; border-radius:999px; font-size:.92rem;
+  opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:380px){.bban{font-size:1.05rem}.card{padding:20px 14px 16px}}
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="top">
+    <div>
+      <h1>محول BBAN للبنوك السودانية</h1>
+      <p class="sub">حوّل رقم حسابك إلى صيغة BBAN بسهولة حسب البنك.</p>
+    </div>
+    <button class="theme" id="themeBtn" type="button" aria-label="تبديل الوضع الداكن">🌙</button>
+  </div>
+
+  <label for="bank">البنك</label>
+  <select id="bank">
+    <option value="">اختر البنك</option>
+  </select>
+  <div class="info" id="info" role="status"></div>
+
+  <label for="acc">رقم الحساب</label>
+  <input id="acc" type="text" inputmode="numeric" autocomplete="off" placeholder="اكتب رقم حسابك هنا">
+
+  <div class="actions">
+    <button class="btn main" id="convert" type="button">تحويل BBAN</button>
+    <button class="btn alt" id="clear" type="button">مسح</button>
+  </div>
+  <div class="msg" id="msg" role="alert"></div>
+
+  <section class="result" id="result" aria-live="polite">
+    <h2>رقم BBAN</h2>
+    <div class="row">
+      <div class="bban" id="out"></div>
+      <button class="copy" id="copy" type="button">نسخ</button>
+    </div>
+  </section>
+
+  <p class="privacy">رقم الحساب يُستخدم داخل المتصفح فقط لإنشاء رقم BBAN ولا يتم إرساله إلى أي خادم.</p>
+</main>
+<div class="toast" id="toast">تم نسخ الرقم بنجاح</div>
+
+<script>
+(function(){
+  var BANKS = [
+    {name:"بنك الخرطوم", service:"بنكك", template:"040XXXXXXX0001"},
+    {name:"بنك أم درمان الوطني", service:"أوكاش", template:"240XXXXXX00001"},
+    {name:"بنك فيصل الإسلامي", service:"فوري", template:"02XXXXXXXX0001"},
+    {name:"بنك النيل الأزرق", service:"مشرق", template:"150000XXXXXXXX"},
+    {name:"البنك الإسلامي السوداني", service:"أمن بلس", template:"14000XXXX00001"},
+    {name:"بنك المزارع التجاري", service:"مصرفك", template:"222XXXXXXXXXXX"},
+    {name:"البنك الفرنسي السوداني", service:null, template:"110XXXXXX00001"},
+    {name:"البنك الزراعي السوداني", service:"الزراعي موبايل", template:"03XXXXXXX01001"},
+    {name:"بنك السلام السوداني", service:null, template:"180XXXXXX00001"},
+    {name:"بنك البركة السوداني", service:null, template:"070XXXXXX00001"},
+    {name:"بنك الثروة الحيوانية", service:null, template:"090XXXXXX00001"},
+    {name:"بنك العمال الوطني", service:"وطني", template:null, note:"هذه الخدمة متاحة من داخل تطبيق وطني فقط."},
+    {name:"البنك العقاري التجاري", service:null, template:"160XXXXXX00001"},
+    {name:"بنك التنمية الصناعية", service:null, template:"130XXXXXX00001"},
+    {name:"بنك المال المتحد", service:null, template:"170XXXXXX00001"}
+  ];
+
+  var $ = function(id){ return document.getElementById(id); };
+  var bankEl=$("bank"), accEl=$("acc"), infoEl=$("info"), msgEl=$("msg"),
+      resEl=$("result"), outEl=$("out"), convBtn=$("convert"), toastEl=$("toast"),
+      root=document.documentElement, themeBtn=$("themeBtn");
+
+  BANKS.forEach(function(b,i){
+    var o=document.createElement("option");
+    o.value=String(i); o.textContent=b.name; bankEl.appendChild(o);
+  });
+
+  function convertBBAN(template, account){
+    return template.replace(/X+/, function(){ return account; });
+  }
+
+  // تحويل الأرقام العربية والفارسية إلى إنجليزية ثم إبقاء الأرقام فقط
+  function clean(v){
+    return String(v)
+      .replace(/[\u0660-\u0669]/g, function(d){ return d.charCodeAt(0)-0x0660; })
+      .replace(/[\u06F0-\u06F9]/g, function(d){ return d.charCodeAt(0)-0x06F0; })
+      .replace(/\D/g, "");
+  }
+
+  function currentBank(){ return bankEl.value===""?null:BANKS[+bankEl.value]; }
+  function hideResult(){ resEl.style.display="none"; outEl.textContent=""; }
+  function showMsg(t){ msgEl.textContent=t; msgEl.style.display=t?"block":"none"; }
+
+  bankEl.addEventListener("change", function(){
+    var b=currentBank();
+    showMsg(""); hideResult();
+    if(!b){ infoEl.style.display="none"; convBtn.disabled=false; return; }
+    infoEl.style.display="block";
+    if(!b.template){
+      infoEl.className="info warn";
+      infoEl.textContent=b.note;
+      convBtn.disabled=true;
+    }else{
+      infoEl.className="info";
+      infoEl.textContent=b.service ? "الخدمة: "+b.service : b.name;
+      convBtn.disabled=false;
+    }
+  });
+
+  accEl.addEventListener("input", function(){
+    var c=clean(accEl.value);
+    if(c!==accEl.value) accEl.value=c;
+    showMsg("");
+  });
+
+  function doConvert(){
+    var b=currentBank();
+    if(!b){ showMsg("اختر البنك أولاً."); hideResult(); return; }
+    if(!b.template){ return; }
+    var acc=clean(accEl.value);
+    accEl.value=acc;
+    if(!acc){ showMsg("اكتب رقم الحساب أولاً."); hideResult(); return; }
+    showMsg("");
+    outEl.textContent=convertBBAN(b.template, acc);
+    resEl.style.display="block";
+  }
+  convBtn.addEventListener("click", doConvert);
+  accEl.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); doConvert(); } });
+
+  $("clear").addEventListener("click", function(){
+    accEl.value=""; showMsg(""); hideResult(); accEl.focus();
+  });
+
+  var toastTimer;
+  function toast(){
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(function(){ toastEl.classList.remove("show"); }, 2000);
+  }
+  function fallbackCopy(text){
+    var t=document.createElement("textarea");
+    t.value=text; t.setAttribute("readonly",""); t.style.position="fixed"; t.style.opacity="0";
+    document.body.appendChild(t); t.select();
+    var ok=false; try{ ok=document.execCommand("copy"); }catch(e){}
+    document.body.removeChild(t); return ok;
+  }
+  $("copy").addEventListener("click", function(){
+    var text=outEl.textContent;
+    if(!text) return;
+    if(navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(text).then(toast, function(){ if(fallbackCopy(text)) toast(); });
+    }else if(fallbackCopy(text)){ toast(); }
+  });
+
+  // الوضع الداكن
+  function applyTheme(t){
+    root.setAttribute("data-theme", t);
+    themeBtn.textContent = t==="dark" ? "☀️" : "🌙";
+  }
+  var saved=null;
+  try{ saved=localStorage.getItem("bban-theme"); }catch(e){}
+  if(!saved){
+    saved=(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+  }
+  applyTheme(saved);
+  themeBtn.addEventListener("click", function(){
+    var next=root.getAttribute("data-theme")==="dark" ? "light" : "dark";
+    applyTheme(next);
+    try{ localStorage.setItem("bban-theme", next); }catch(e){}
+  });
+})();
+</script>
+</body>
+</html>
